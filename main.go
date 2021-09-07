@@ -39,33 +39,39 @@ func dirTreeHelper(out io.Writer, path string, printFiles bool, prefix string) e
 	}
 	var dir osFiles
 	dir, err = f.Readdir(0)
-	var folders []fs.FileInfo
-	for _, val := range dir{
-		if val.IsDir(){
-			folders = append( folders, val)
-		}
-	}
+	
+
+	// Filter all files leaving only folders
 	if !printFiles{
+		var folders []fs.FileInfo
+		for _, val := range dir{
+			if val.IsDir(){
+				folders = append( folders, val)
+			}
+		}
 		dir = folders
 	}
+	
+
 	sort.Sort(dir)
 	for idx, val := range dir{
 		{
 			if idx == dir.Len()-1{
 				fmt.Fprintf(os.Stdout, prefix+ "└───" + val.Name()+ printSize(val) + "\n")
 				if(val.IsDir()){
-					dirTreeHelper(out, path+"/"+val.Name(), printFiles, prefix+"   ")
+					dirTreeHelper(out, path+"/"+val.Name(), printFiles, prefix+"    ")
 				}
 			}else{
 				fmt.Fprintf(os.Stdout, prefix+"├───"+ val.Name() + printSize(val) + "\n")
 				if(val.IsDir()){
-					dirTreeHelper(out, path+"/"+val.Name(), printFiles, prefix+"│   ")
+					dirTreeHelper(out, path+"/"+val.Name(), printFiles, prefix+"│    ")
 				}
 			}
 		}	
 	}
 	return nil
 }
+
 func printSize(file fs.FileInfo) string{
 	if !file.IsDir(){
 		var size = file.Size()
