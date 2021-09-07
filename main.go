@@ -6,8 +6,6 @@ import (
 	"io/fs"
 	"os"
 	"sort"
-	// "path/filepath"
-	// "strings"
 )
 
 func main() {
@@ -24,7 +22,7 @@ func main() {
 }
 
 func dirTree(out io.Writer, path string, printFiles bool) error{
-	return dirTreeHelper(out, path, printFiles, 0)
+	return dirTreeHelper(out, path, printFiles, "")
 }
 
 
@@ -34,48 +32,50 @@ func (a osFiles) Len() int           { return len(a) }
 func (a osFiles) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a osFiles) Less(i, j int) bool { return a[i].Name() < a[j].Name() }
 
-func dirTreeHelper(out io.Writer, path string, printFiles bool, level int) error{
+func dirTreeHelper(out io.Writer, path string, printFiles bool, prefix string) error{
 	f, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("Something went wrong, %v",err)
 	}
 	var dir osFiles
 	dir, err = f.Readdir(0)
+	var folders []fs.FileInfo
+	for _, val := range dir{
+		if val.IsDir(){
+			folders = append( folders, val)
+		}
+	}
+	if !printFiles{
+		dir = folders
+	}
 	sort.Sort(dir)
 	for idx, val := range dir{
-		// if level != 0{
-		// 	fmt.Print("|")
-		// }
-		if level > 0{
-			fmt.Printf("   ")
-		}
-		for  i := 1; i < level; i++ {
-			fmt.Printf("│   ")
-		}
-		if idx == dir.Len()-1{
-			fmt.Printf("└")
+		{
+			if idx == dir.Len()-1{
+				fmt.Fprintf(os.Stdout, prefix+ "└───" + val.Name()+ printSize(val) + "\n")
+				if(val.IsDir()){
+					dirTreeHelper(out, path+"/"+val.Name(), printFiles, prefix+"   ")
+				}
 			}else{
-			fmt.Printf("├")
-		}
-		fmt.Fprintf(os.Stdout, "───"+val.Name() + " ")
-		isDir :=  val.IsDir()
-		if isDir{
-			// fmt.Printf("D")
-			fmt.Print("\n")
-			dirTreeHelper(out, path+"/"+val.Name(), printFiles, level+1)
-		}else{
-			if printFiles{
-				var size = val.Size()
-				if size == 0{
-					fmt.Printf("(empty)")
-				}else{
-					fmt.Printf("(%db)",val.Size())
+				fmt.Fprintf(os.Stdout, prefix+"├───"+ val.Name() + printSize(val) + "\n")
+				if(val.IsDir()){
+					dirTreeHelper(out, path+"/"+val.Name(), printFiles, prefix+"│   ")
 				}
 			}
-			fmt.Print("\n")
-		}
-		
+		}	
 	}
 	return nil
 }
+func printSize(file fs.FileInfo) string{
+	if !file.IsDir(){
+		var size = file.Size()
+		if size == 0{
+			return (" (empty)")
+		}else{
+			return fmt.Sprintf(" (%db)",file.Size())
+		}
+	}
+	return ""
+}
+
 
