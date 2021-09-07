@@ -25,7 +25,7 @@ func dirTree(out io.Writer, path string, printFiles bool) error{
 	return dirTreeHelper(out, path, printFiles, "")
 }
 
-
+// Make a new type that will implement sort.Sort interface
 type osFiles []fs.FileInfo
 
 func (a osFiles) Len() int           { return len(a) }
@@ -35,12 +35,11 @@ func (a osFiles) Less(i, j int) bool { return a[i].Name() < a[j].Name() }
 func dirTreeHelper(out io.Writer, path string, printFiles bool, prefix string) error{
 	f, err := os.Open(path)
 	if err != nil {
-		return fmt.Errorf("Something went wrong, %v",err)
+		return fmt.Errorf("something went wrong, %v",err)
 	}
 	var dir osFiles
-	dir, err = f.Readdir(0)
+	dir, _ = f.Readdir(0)
 	
-
 	// Filter all files leaving only folders
 	if !printFiles{
 		var folders []fs.FileInfo
@@ -51,20 +50,19 @@ func dirTreeHelper(out io.Writer, path string, printFiles bool, prefix string) e
 		}
 		dir = folders
 	}
-	
 
 	sort.Sort(dir)
 	for idx, val := range dir{
 		{
 			if idx == dir.Len()-1{
-				fmt.Fprintf(os.Stdout, prefix+ "└───" + val.Name()+ printSize(val) + "\n")
+				fmt.Fprintf(out, prefix+ "└───" + val.Name()+ getFileSize(val) + "\n")
 				if(val.IsDir()){
-					dirTreeHelper(out, path+"/"+val.Name(), printFiles, prefix+"    ")
+					dirTreeHelper(out, path+"/"+val.Name(), printFiles, prefix+"\t")
 				}
 			}else{
-				fmt.Fprintf(os.Stdout, prefix+"├───"+ val.Name() + printSize(val) + "\n")
+				fmt.Fprintf(out, prefix+"├───"+ val.Name() + getFileSize(val) + "\n")
 				if(val.IsDir()){
-					dirTreeHelper(out, path+"/"+val.Name(), printFiles, prefix+"│    ")
+					dirTreeHelper(out, path+"/"+val.Name(), printFiles, prefix+"│\t")
 				}
 			}
 		}	
@@ -72,7 +70,7 @@ func dirTreeHelper(out io.Writer, path string, printFiles bool, prefix string) e
 	return nil
 }
 
-func printSize(file fs.FileInfo) string{
+func getFileSize(file fs.FileInfo) string{
 	if !file.IsDir(){
 		var size = file.Size()
 		if size == 0{
